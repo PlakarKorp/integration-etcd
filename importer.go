@@ -2,7 +2,9 @@ package etcd
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,8 +17,6 @@ import (
 
 func init() {
 	importer.Register("etcd", 0, NewImporter)
-	importer.Register("etcd+http", 0, NewImporter)
-	importer.Register("etcd+https", 0, NewImporter)
 }
 
 type etcd struct {
@@ -27,19 +27,22 @@ type etcd struct {
 
 func NewImporter(ctx context.Context, opts *connectors.Options, proto string, config map[string]string) (importer.Importer, error) {
 	location := config["location"]
-	switch proto {
-	case "etcd":
-		location = "http" + location[len(proto):]
-	case "etcd+http", "etcd+https":
-		location = location[len("etcd+"):]
-	}
 
 	// extract the "hostname" from location, needed for Origin(),
 	// i.e. metadata.
 	origin := location[len(proto)+3:] // +3 for ://
 	origin, _, _ = strings.Cut(origin, "/")
 
-	endpoints := []string{location}
+	p := "https"
+	if insecure := config["insecure"]; insecure != "" {
+		if insecurep, err := strconv.ParseBool(insecure); err != nil {
+			return nil, fmt.Errorf("invalid `insecure` value %q: %w", insecure, err)
+		} else if insecurep {
+			p = "http"
+		}
+	}
+
+	endpoints := []string{p + location[len(proto):]} // replace etcd with `p'
 	if es, ok := config["endpoints"]; ok {
 		endpoints = strings.Split(es, ",")
 	}

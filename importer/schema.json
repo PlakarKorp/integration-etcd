@@ -27,6 +27,11 @@
     "endpoints": {
       "type": "string",
       "description": "Comma-separated list of endpoints"
+    },
+    "insecure": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use plaintext HTTP to connect to vault"
     }
   }
 }
